@@ -1,0 +1,196 @@
+---
+title: "Data Analaysis with the Arctic shorebird csv files"
+format: html
+---
+
+
+```{r, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(RColorBrewer)
+```
+
+
+## Define path and filenames
+
+```{r}
+path_raw <- "data/raw"
+
+sites_csv <- "site.csv"
+
+snowcover_csv <- "snow_cover.csv"
+
+nests_csv <- "ASDN_Bird_nests.csv"
+
+eggs_csv <- "ASDN_Bird_eggs.csv"
+
+species_csv <- "species.csv"
+
+lemmings_csv <- "ASDN_Daily_pred_lemm.csv"
+```
+
+
+## Question 1: Does the snow amount & timing impact the number of eggs? Is it species dependant?
+
+### Summarize the nests table
+
+Read the nest data in
+
+```{r}
+nests_data <- read_csv(file.path(path_raw, nests_csv))
+
+glimpse(nests_data)
+```
+
+Yeah! `Date_found` is already in date format! We can thus directly aggregate the data by months:
+
+
+```{r}
+nests_month <- nests_data %>%
+  mutate(month = month(Date_found)) %>%
+  group_by(Species, Site, Year, month) %>%
+  summarise()
+```
+
+### Summarize the snow cover table
+
+Read the snow cover data in
+
+```{r}
+snowcover_data <- read_csv(file.path(path_raw, snowcover_csv))
+
+glimpse(snowcover_data)
+```
+
+The Date is stored as a character we thus first we need to transform the date in date format before computing the monthly aggregate:
+
+```{r}
+snowcover_data_fixed <- snowcover_data %>%
+  mutate(Date2 = as_date(Date))
+```
+
+We have 72 errors. Let's have a look at the date which failed:
+
+```{r}
+snowcover_data_fixed %>%
+  filter(is.na(Date2)) %>%
+  view()
+```
+
+
+It is because 2 days were entered as one value `8&9 june 06`, it is not in the expected format
+
+```{r}
+snowcover_data_fixed <- snowcover_data_fixed %>%
+  mutate(Date2 = case_when(   ## replaces values, text after ~ replaces the incorrect text
+    Date == "8&9 june 06" ~ "09-june-06",
+    .default = Date
+  )) %>%
+  mutate(Date2 = as_date(Date, format = "%d-%b-%y"))
+```
+
+Mmm the Dates are not what we were expecting... It generally means there are different date types. Let's start by fixing the problematic dates before transforming it to the date format.
+
+```{r}
+
+```
+
+
+::: {.callout-note}
+## Fun fact
+You might be wondering why I started with `as_date()` instead of directly using `dmy()`. Well turns out that while preparing this exercise I discovered a bug in this `lubridate` function!! See <https://github.com/tidyverse/lubridate/issues/1161>
+:::
+
+
+Now let's compute the monthly statistics
+
+```{r}
+# adding the snow days with a threshold at 10%
+
+
+#snow cover >10%
+#site, year, month
+# cum_snow_days
+# avg snow cover
+
+# check repo for correct code
+
+```
+
+ 
+### Join the snow cover and nest tables
+
+```{r}
+nests_snow_month <- nests_month %>%
+  inner_join(snowcover_data_fixed, join_by(Site, month==Month, Year)) 
+
+# left_join matches exact table on left (e.g., nest_info), and only right table that applies. so you get a bunch of NA values. compared to inner join which shows only the intersection
+# only do a join on an aggregated dataset
+#
+```
+
+Well in the end we did not have much information by months (mainly 2 months per year focused on June and July), so let's aggregate by year instead:
+
+```{r}
+nests_snow_year <- nests_snow_month %>%
+  group_by(Soecies, Site, Year) %>%
+  summarise(cum_snow_days = sum(cum_snow_days, na.rm = TRUE),
+            avg_snow_days = mean(avg_snow_days, na.rm = TRUE)
+             )
+```
+
+### Plots
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+What do you think is the answer to our question? 
+
+
+## Question 2: Which shorebird species makes the most eggs?
+
+### Import the data
+
+```{r}
+sites_data <- read_csv(file.path(path_raw, sites_csv))
+
+eggs_data <- read_csv(file.path(path_raw, eggs_csv))
+
+species_data <- read_csv(file.path(path_raw, species_csv))
+```
+
+Let's compute the number of eggs per nest. The column `Egg-num` seems to be a good candidate to estimate the number of eggs per nest:
+
+```{r}
+eggs_sum <- 
+```
+
+Join with the nest data:
+
+```{r}
+
+```
+
+Group by species:
+
+```{r}
+
+```
+
+OK we might want to have more explicit names for the species!, Luckily we have the species table to help with that:
+
+```{r}
+
+```
+
+Some cleaning of the data frame to put the average at the end and remove the Relevance column:
+
+```{r}
+
+```
+
